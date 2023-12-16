@@ -20,6 +20,8 @@ class ViewController: UIViewController {
     let restClient = RESTClient<PaginaterResponse<Character>>(client: Client("https://rickandmortyapi.com"))
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.title = "Charater"
+        self.navigationController?.navigationBar.prefersLargeTitles = true
 //        restClient.show("/api/character"){ response in
 //            //response.results
 //            print(response.results)
