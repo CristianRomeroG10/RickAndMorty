@@ -9,6 +9,9 @@ import UIKit
 
 class ViewController: UIViewController {
     
+    var currentPage = 1
+    var isLoadingData = false
+    
     //MARK: OUTLETS
     @IBOutlet weak var characterTableView: UITableView!{
         didSet{
@@ -17,7 +20,30 @@ class ViewController: UIViewController {
     }
     var character: [Character] = []
     
-    let restClient = RESTClient<PaginaterResponse<Character>>(client: Client("https://rickandmortyapi.com"))
+    func fetchData(page: Int){
+        let restClient = RESTClient<PaginaterResponse<Character>>(client: Client("https://rickandmortyapi.com"))
+        restClient.show("/api/character",page: "\(page)") { response in
+            print(response.results)
+           
+            if page == 1 {
+                self.character = response.results
+            } else {
+                self.character.append(contentsOf: response.results)
+            }
+            self.characterTableView.reloadData()
+            self.isLoadingData = false
+        }
+    }
+    
+    func LoadMoreData(){
+        guard !isLoadingData else {
+            return
+        }
+        isLoadingData = true
+        currentPage += 1
+        fetchData(page: currentPage)
+    }
+   
     override func viewDidLoad() {
         super.viewDidLoad()
         self.title = "Charater"
@@ -25,21 +51,13 @@ class ViewController: UIViewController {
 //        restClient.show("/api/character"){ response in
 //            //response.results
 //            print(response.results)
-        restClient.show("/api/character",page: "2") { response in
-            print(response.results)
-            self.character = response.results
-            self.characterTableView.dataSource = self
-            self.characterTableView.delegate = self
-            self.reloadTableView()
-        }
-        
+        fetchData(page: currentPage)
+        self.characterTableView.dataSource = self
+        self.characterTableView.delegate = self
+        self.characterTableView.prefetchDataSource = self
         }
     //query: ["page":"2"]
-    func reloadTableView(){
-        DispatchQueue.main.async{
-            self.characterTableView.reloadData()
-        }
-    }
+    
 }
 
 extension ViewController: UITableViewDataSource{
@@ -75,6 +93,15 @@ extension ViewController: UITableViewDataSource{
 extension ViewController: UITableViewDelegate{
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+    }
+    
+    
+}
+
+extension ViewController: UITableViewDataSourcePrefetching{
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        guard let lastIndexPath = indexPaths.last, lastIndexPath.row == character.count - 1 else { return }
+        LoadMoreData()
     }
     
     
